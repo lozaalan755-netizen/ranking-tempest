@@ -1,0 +1,49 @@
+<h1>Registro de Jugador</h1>
+
+<form id="formRanking">
+
+  <input type="text" id="nombre" placeholder="Nombre del jugador" required>
+
+  <input type="text" id="idJugador" placeholder="ID del jugador" required>
+
+  <input type="text" id="clan" placeholder="Clan">
+
+  <input type="number" id="nivel" placeholder="Nivel" required>
+
+  <input type="number" id="puntos" placeholder="Puntos" value="0">
+
+  <input type="number" id="victorias" placeholder="Victorias" value="0">
+
+  <input type="number" id="derrotas" placeholder="Derrotas" value="0">
+
+  <button type="submit">
+      Registrar jugador
+  </button>
+
+</form>
+
+<hr>
+
+<h2>Ranking</h2>
+
+<table border="1">
+
+<thead>
+<tr>
+<th>#</th>
+<th>Nombre</th>
+<th>Clan</th>
+<th>Nivel</th>
+<th>Puntos</th>
+<th>Victorias</th>
+<th>Derrotas</th>
+</tr>
+</thead>
+
+<tbody id="tablaRanking">
+
+</tbody>
+
+</table>
+
+<script type="module" src="ranking.js"></script>
