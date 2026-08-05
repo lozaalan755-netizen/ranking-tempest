@@ -35,7 +35,7 @@ form.addEventListener("submit", async (e) => {
 
     console.error(error);
 
-    alert("Error al guardar");
+    alert("Error al guardar: " + error.messagw);
 
   }
 
