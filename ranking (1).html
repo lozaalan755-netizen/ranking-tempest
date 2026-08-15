@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Duelos del Destino · Ranking Magic Rampage</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #1A0A0D;
+    --panel: #2A1114;
+    --border: #4A1D22;
+    --text: #F5E6E7;
+    --muted: #C98A8F;
+    --muted-dim: #7A4B4F;
+    --accent: #DC143C;
+    --accent-hover: #ea3355;
+    --danger: #FF7A7A;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 40px 20px; }
+  header { margin-bottom: 32px; }
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 4px;
+  }
+  h1 {
+    font-size: 30px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  h1 svg { color: var(--accent); }
+  .subtitle { font-size: 14px; color: var(--muted); margin: 4px 0 0; }
+
+  form {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  form input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  form input::placeholder { color: var(--muted-dim); }
+  form input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  #name { flex: 1 1 180px; }
+  #streak { flex: 0 1 130px; }
+  #evidence { flex: 1 1 100%; }
+
+  button[type="submit"] {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.15s;
+  }
+  button[type="submit"]:hover { background: var(--accent-hover); }
+  button[type="submit"]:disabled { opacity: 0.6; cursor: default; }
+
+  .error {
+    color: var(--danger);
+    font-size: 13px;
+    margin: -8px 0 16px;
+  }
+
+  .board {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .board-head {
+    display: grid;
+    grid-template-columns: 3rem 1fr 6rem 6rem;
+    padding: 12px 20px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .board-head span:last-child, .board-head span:nth-child(3) { text-align: right; }
+
+  .refresh {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 11px;
+    padding: 8px 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .refresh:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+
+  .row {
+    display: grid;
+    grid-template-columns: 3rem 1fr 6rem 6rem;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .row:last-child { border-bottom: none; }
+  .row:hover { background: rgba(255,255,255,0.03); }
+  .rank { font-family: monospace; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+  .player { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 8px; }
+  .player a { color: var(--muted); font-size: 12px; margin-left: 6px; text-decoration: none; border-bottom: 1px dotted var(--muted); }
+  .player a:hover { color: var(--accent); }
+  .best { text-align: right; font-family: monospace; font-weight: 700; color: var(--accent); }
+  .current { text-align: right; font-family: monospace; color: var(--muted); }
+
+  .empty, .loading {
+    padding: 48px 20px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--muted-dim);
+  }
+  .loading { color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+  .foot-note {
+    font-size: 12px;
+    color: var(--muted-dim);
+    text-align: center;
+    margin-top: 16px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Magic Rampage · Comunidad</p>
+    <h1>
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/><path d="M2 15l6-6"/><path d="M15 9l6-6"/></svg>
+      Duelos del Destino
+    </h1>
+    <p class="subtitle">Ranking no oficial por racha de victorias consecutivas</p>
+  </header>
+
+  <form id="ranking-form">
+    <input id="name" type="text" placeholder="Tu nombre de jugador" maxlength="40" required>
+    <input id="streak" type="number" min="0" placeholder="Racha actual" required>
+    <input id="evidence" type="url" placeholder="Enlace de evidencia (captura, video) — opcional">
+    <button type="submit" id="submit-btn">Registrar racha</button>
+  </form>
+
+  <p class="error" id="error" style="display:none;"></p>
+
+  <div class="board">
+    <div class="board-head">
+      <span>#</span><span>Jugador</span><span>Mejor</span><span>Actual</span>
+    </div>
+    <button class="refresh" id="refresh-btn">↻ Actualizar ranking</button>
+    <div id="board-body">
+      <div class="loading">Cargando ranking...</div>
+    </div>
+  </div>
+
+  <p class="foot-note">Si te registras con el mismo nombre otra vez, se actualiza tu racha actual y se conserva tu mejor marca histórica.</p>
+</div>
+
+<script>
+/* ======================================================
+   CONFIGURACIÓN DE SUPABASE — reemplaza estos dos valores
+   ====================================================== */
+const SUPABASE_URL = "https://fzehfpcimriymrlxomjv.supabase.co"; 
+const SUPABASE_ANON_KEY = "sb_publishable_2_8NrSjFF0oPNIIHp_R1uA_0EHBchqc";
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const TABLE = "duelos";
+/* ====================================================== */
+
+const form = document.getElementById("ranking-form");
+const nameInput = document.getElementById("name");
+const streakInput = document.getElementById("streak");
+const evidenceInput = document.getElementById("evidence");
+const submitBtn = document.getElementById("submit-btn");
+const errorEl = document.getElementById("error");
+const boardBody = document.getElementById("board-body");
+const refreshBtn = document.getElementById("refresh-btn");
+
+function showError(msg) {
+  errorEl.textContent = msg;
+  errorEl.style.display = msg ? "block" : "none";
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+async function loadEntries() {
+  boardBody.innerHTML = '<div class="loading">Cargando ranking...</div>';
+  const { data, error } = await supabaseClient 
+    .from(TABLE)
+    .select("*")
+    .order("best_streak", { ascending: false });
+
+  if (error) {
+    boardBody.innerHTML = `<div class="empty">No se pudo cargar el ranking. Revisa la conexión a Supabase.</div>`;
+    return;
+  }
+  renderBoard(data || []);
+}
+
+function renderBoard(entries) {
+  if (entries.length === 0) {
+    boardBody.innerHTML = '<div class="empty">Nadie ha registrado su racha todavía. Sé el primero en entrar al duelo.</div>';
+    return;
+  }
+
+  boardBody.innerHTML = entries.map((entry, i) => {
+    const rank = i + 1;
+    const rankDisplay = rank === 1
+      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC143C" stroke-width="2.2"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z"/></svg>'
+      : rank;
+    const evidenceLink = entry.evidence
+      ? `<a href="${escapeHtml(entry.evidence)}" target="_blank" rel="noopener noreferrer">evidencia</a>`
+      : "";
+    return `
+      <div class="row">
+        <span class="rank">${rankDisplay}</span>
+        <span class="player">${escapeHtml(entry.name)}${evidenceLink}</span>
+        <span class="best">${entry.best_streak.toLocaleString("es")}</span>
+        <span class="current">${entry.streak.toLocaleString("es")}</span>
+      </div>
+    `;
+  }).join("");
+}
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = nameInput.value.trim();
+  const streak = Number(streakInput.value);
+  const evidence = evidenceInput.value.trim();
+
+  if (!name || streakInput.value === "") return;
+
+  submitBtn.disabled = true;
+  showError("");
+
+  try {
+    // Busca si el jugador ya existe (por nombre, sin distinguir mayúsculas)
+    const { data: existing, error: findError } = await supabaseClient 
+      .from(TABLE)
+      .select("*")
+      .ilike("name", name)
+      .maybeSingle();
+
+    if (findError) throw findError;
+
+    if (existing) {
+      const newBest = Math.max(existing.best_streak, streak);
+      const { error: updateError } = await supabaseClient 
+        .from(TABLE)
+        .update({
+          streak,
+          best_streak: newBest,
+          evidence: evidence || existing.evidence,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id);
+
+      if (updateError) throw updateError;
+    } else {
+      const { error: insertError } = await supabaseClient 
+        .from(TABLE)
+        .insert({
+          name,
+          streak,
+          best_streak: streak,
+          evidence: evidence || null,
+          updated_at: new Date().toISOString(),
+        });
+
+      if (insertError) throw insertError;
+    }
+
+    await loadEntries();
+    nameInput.value = "";
+    streakInput.value = "";
+    evidenceInput.value = "";
+  } catch (err) {
+    showError("Error al guardar. Revisa tu conexión a Supabase.");
+    console.error(err);
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+
+refreshBtn.addEventListener("click", loadEntries);
+
+loadEntries();
+</script>
+</body>
+</html>
